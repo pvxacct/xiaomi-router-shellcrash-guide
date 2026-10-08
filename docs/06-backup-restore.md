@@ -8,24 +8,48 @@
 
 在路由器上执行：
 
+> ## ⚠️ 先看这个：别在路由器上打包大文件
+>
+> 很多小米原厂固件把 `panic_on_oom` 设成 `2`：
+>
+> ```sh
+> cat /proc/sys/vm/panic_on_oom      # 输出 2 就要小心
+> ```
+>
+> 意思是"内核一旦 OOM 就**直接 panic 重启**"，而不是杀掉那个进程。
+> 实测在 AX3000T（256 MB 内存、mihomo 常驻、空闲内存常年只有 15 MB 上下）上，
+> 用 `tar -czf` 打包约 20 MB 的内容会触发 OOM，**路由器当场重启**。
+>
+> 所以：**配置用 tar，内核和面板单独处理**。
+
 ```sh
-tar -czf /tmp/sc-backup-$(date +%Y%m%d).tgz \
+# 只打包配置（几百 KB，安全）
+tar -czf /tmp/sc-config-$(date +%Y%m%d).tgz \
   -C /data \
   ShellCrash/configs \
   ShellCrash/yamls \
   ShellCrash/version \
   ShellCrash/servers.list \
-  ShellCrash/CrashCore.tar.gz \
-  ShellCrash/ui \
   ShellCrash/ruleset \
   ShellCrash/task
 
-ls -lh /tmp/sc-backup-*.tgz
+ls -lh /tmp/sc-config-*.tgz
 ```
 
-> `ShellCrash/CrashCore.tar.gz` 有 10～12 MB，是包里最大的部分。如果只想留配置，可以去掉这一行。
+内核（`CrashCore.tar.gz`，约 12 MB）和面板（`ui/`，约 5 MB）都是**可以重新下载**的，
+真要用 tar 一起打，先确认空闲内存充足，并且用 `gzip -1` 降低瞬时压力：
+
+```sh
+free                          # 看 free 那一列
+df -k /tmp | tail -1          # 看目标分区可用 KB
+GZIP=-1 tar -czf /tmp/sc-big-$(date +%Y%m%d).tgz \
+  -C /data ShellCrash/CrashCore.tar.gz ShellCrash/ui
+```
+
+> 空闲内存低于 ~40 MB 时，别做这一步。
 
 仓库里也提供了 [`scripts/backup-shellcrash.sh`](../scripts/backup-shellcrash.sh)。
+默认只备份配置，加 `--all` 才连内核和面板一起打，并且会先检查内存和空间。
 
 ---
 

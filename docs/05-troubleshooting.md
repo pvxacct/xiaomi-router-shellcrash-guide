@@ -172,6 +172,52 @@ rules:
 
 ---
 
+## ⚠️ 内存不足会导致路由器直接重启（OOM panic）
+
+**现象**：SSH 突然断开、路由器自己重启，`uptime` 显示的运行时长比预期短很多。
+
+**原因**：小米原厂固件普遍设置了
+
+```sh
+cat /proc/sys/vm/panic_on_oom
+# 2
+```
+
+`panic_on_oom=2` 表示"一旦 OOM，内核直接 panic 重启"，而不是杀掉占用内存的进程。
+AX3000T 只有 256 MB 内存，mihomo 常驻后空闲内存常年只有 15 MB 左右，
+再跑任何**大内存操作**（在路由器上 `tar` 打包大目录、解压大文件、下载大文件到 `/tmp`）都可能触发。
+
+**怎么确认**：
+
+```sh
+uptime                      # 看开机时长，比预期短就是被重启了
+ls -l /tmp/panic.tar.gz     # 小米固件会把 panic 现场留在这里
+mkdir -p /tmp/px && tar -xzf /tmp/panic.tar.gz -C /tmp/px && \
+  grep -iE "out of memory|oom-killer|Kernel panic" /tmp/px/*
+```
+
+典型输出：
+
+```text
+tar invoked oom-killer: gfp_mask=0x500cc2, order=0, oom_score_adj=0
+Kernel panic - not syncing: Out of memory: compulsory panic_on_oom is enabled
+```
+
+**怎么避免**：
+
+- **不要**在路由器上做大文件 `tar` / `gzip`。要打包就先 `free` 看一眼空闲内存
+- 需要传大文件时，让**电脑主动推**（`wget` 从电脑拉），而不是在路由器上边下边解压
+- 用 `top -b -n 1` 看谁在吃内存；mihomo 的 `VSZ` 显示很大是正常的（Go 的虚拟地址），看 RSS 才有意义
+- 想更稳可以：
+  - 主菜单 `2 功能设置` 关掉用不到的 TUN / IPv6
+  - 减少订阅节点数量（提供者里设"排除节点正则"）
+  - 换更小的面板
+
+**如果真的重启了**：只要 `/data` 没坏，ShellCrash 会开机自启，等 1～2 分钟即可恢复。
+恢复后 `df -h /data`、`curl -s http://127.0.0.1:9999/version` 确认一下状态。
+
+---
+
 ## 空间与性能
 
 **内存吃紧（AX3000T 只有 256 MB）**
