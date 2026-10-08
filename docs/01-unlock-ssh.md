@@ -81,27 +81,44 @@ Enter device WEB password:
 
 ### ④ 选 `6` 安装永久 SSH
 
-工具会问你**想给 root 设置的密码**（输入时不回显 / 只显示 `*`）：
+这一步**不会**问你要密码，它只负责"把 SSH 打开并且持久化"。它会往路由器里写：
+
+- `nvram set ssh_en=1` + `nvram commit`
+- 把补丁脚本放进 `/etc/crontabs/patches/ssh_patch.sh`，并加一条**每分钟执行**的 `crontab` 兜底
+- 用 `uci` 注册一个 `firewall` include，开机自动跑一次补丁
+- 加载 `xmir_patcher.ko`，把 `bdata` 里的 `telnet_en / ssh_en / uart_en / boot_wait` 全部打开
+- 改掉 `/etc/init.d/dropbear` 里的版本判断，让 dropbear 在原厂固件上也会启动
+
+期望输出：
 
 ```text
-Enter new password for root user:
+All files uploaded!
+Run scripts...
+Ready! The Permanent SSH patch installed.
+Patch for bdata result: OK
 ```
 
-设置完之后，它会：
+> 看到最后一行 `OK` 才算完整成功。如果提示 `WARN: Patch for bdata partition not executed!`，说明 kmod 没加载上，回到第 ③ 步重来。
 
-- `nvram set ssh_en=1` 并 `nvram commit`
-- 把 `/etc/init.d/dropbear` 里的版本判断改掉，让 dropbear 在正式固件上也启动
-- `/etc/init.d/dropbear enable && restart`
+### ⑤ 用 `8` → `2` 明确设置 root 密码（**别跳过**）
 
-看到 `SSH patch OK` / `All done` 之类提示即完成。
+第 ④ 步只打开了 SSH，**并不负责设密码**。有些固件本来就没有 root 密码，这时直接 `ssh` 会登录失败。所以紧接着：
 
-### ⑤（可选）选 `8` → `2` 之后再改 root 密码
+```text
+主菜单 8 （其他功能）
+   → 2 - Change root password
+       Enter new password for root user:     <输入你想设的密码>
+```
 
-以后想换密码：主菜单 `8`（其他功能）→ 二级菜单 `2 - Change root password`。
+它会通过临时 shell 执行 `passwd root`，并立刻用新密码试连一次 SSH，成功才返回。
+
+以后任何时候想改密码，也是这条路径。
 
 ### ⑥ 选 `9` 重启设备验证
 
-重启后 SSH 应该依然可用。如果重启后连不上，说明第 ④ 步没写进持久化配置，回到第 ③ ④ 步重做。
+重启后 SSH 应该依然可用——`nvram` / `bdata` 里的开关已经落盘，即使 `crontab` 兜底还没跑到也没关系。
+
+如果重启后连不上，说明第 ④ 步的持久化没写成功，回到第 ③ ④ 步重做。
 
 ---
 
