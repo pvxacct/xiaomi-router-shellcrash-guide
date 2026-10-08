@@ -19,6 +19,7 @@
 | 4 | 升级 **Dashboard 面板** 与 **内核** | [docs/04-panel-and-core-upgrade.md](docs/04-panel-and-core-upgrade.md) |
 | 5 | 备份与整机恢复 | [docs/06-backup-restore.md](docs/06-backup-restore.md) |
 | 6 | 常见问题排查 | [docs/05-troubleshooting.md](docs/05-troubleshooting.md) |
+| 7 | 安全加固（面板 / SSH / 凭据） | [docs/07-security-and-hardening.md](docs/07-security-and-hardening.md) |
 
 配套脚本在 [`scripts/`](scripts/) 目录。
 
@@ -31,6 +32,7 @@
 - 一台电脑（Windows / macOS / Linux 都行），用**网线**接到路由器的 LAN 口
 - 路由器已知的**后台管理密码**（小米路由器初始设置时设的那个）
 - 一个能用的机场订阅链接，或者自己的 VPS 节点信息（vless / trojan / hysteria2 / tuic 等）
+- （建议）想长期用的话，先看一眼 [第 7 步：安全加固](docs/07-security-and-hardening.md)——面板默认**没有密码**，而且这些凭据都不能外传
 
 **开始前必须知道的四件事**
 
