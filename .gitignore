@@ -1,0 +1,19 @@
+# 备份与导出
+*.tgz
+*.tar.gz
+*.bak
+outdir/
+tmp/
+backup/
+
+# 千万别提交真实节点信息
+*nodes-real*
+*credentials*
+.env
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
